@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+  <script>
+
+    const INIMIGO = 1;
+    const JOGADOR = 2;
+    const TIRO_JOGADOR = 3;
+    const TIRO_INIMIGO = 4;
+    var dificuldade=200;
+
+    class Sprite {
+      constructor(ctx, idImagem, x, y,largura,altura, velocidade) {
+        this.ctx = ctx;
+        this.imagem = document.getElementById(idImagem);
+        this.x = x;
+        this.y = y;
+        this.destinoX = 0;
+        this.destinoY = y;
+        this.largura = largura;
+        this.altura = altura;
+        this.velocidade = velocidade;
+        this.vivo = true;
+        this.deltaX = 6;
+        this.desenha();
+        
+      }
+      apaga() {
+        this.ctx.clearRect(this.x,this.y,this.largura,this.altura);
+      }
+      desenha() {
+        this.ctx.drawImage(this.imagem, this.x, this.y);
+      }
+      move() {
+        if ( (this.destinoX != this.x) ||
+             (this.destinoY != this.y) ) {
+          this.apaga();
+          if (this.destinoX != this.x) {
+            if (this.destinoX > this.x) this.x += this.velocidade;
+            else this.x -= this.velocidade;
+          }
+          if (this.destinoY != this.y) {
+            if (this.destinoY > this.y) this.y += this.velocidade;
+            else this.y -= this.velocidade;
+          }
+          this.desenha();
+        }
+        return true;
+      }    
+
+      testaColisao(x,y) {
+        return (x >= (this.x+this.deltaX) && x <= (this.x-this.deltaX) + this.largura && y >= this.y && y <= this.y + this.altura);
+      }  
+
+      morre() {
+        this.apaga();
+        this.vivo = false;
+      }
+
+    }
+
+    class Inimigo1 extends Sprite {
+      constructor(ctx, x,velocidade) {
+        super(ctx,"inimigo1",x,50,34,60, velocidade);
+        this.destinoX = 600;
+        this.tipoSprite = INIMIGO;
+        
+      }
+
+      move() {
+        if (this.x >= 600) {
+          this.destinoX = 0;
+        }
+        if (this.x <= 0) {
+          this.destinoX = 600;
+        }
+
+        if (Math.floor(Math.random() * dificuldade) == 0) {
+          let spriteTiro = new Tiro(this.ctx,this.x+16,60,TIRO_INIMIGO);
+          sprites.push(spriteTiro);        
+        }
+
+        super.move();
+        return true;
+      }
+    }
+
+    class Inimigo2 extends Sprite {
+      constructor(ctx, x,velocidade) {
+        super(ctx,"inimigo2",x,0,55,51, velocidade);
+        this.destinoX = 550;
+        this.destinoY = 300;
+        this.tipoSprite = INIMIGO;
+      }
+      move() {
+
+        if (this.x >= 550) this.destinoX = 0;
+        if (this.x <= 0) this.destinoX = 550;
+        if (this.y >= 300) this.destinoY = 50;
+        if (this.y <= 50) this.destinoY = 300;
+        if (Math.floor(Math.random() * (dificuldade/5)) == 0) {
+          let spriteTiro = new Tiro(this.ctx,this.x+16,this.y + 60,TIRO_INIMIGO);
+          sprites.push(spriteTiro);        
+        }
+
+        super.move();
+        return true;
+      }
+    }
+
+
+    class Tiro extends Sprite {
+      constructor(ctx, x, y,tipo) {
+        super(ctx,"id_tiro",x,y,17,17,2);
+        this.destinoX = x;
+        this.tipoSprite = tipo;
+        if (tipo == TIRO_JOGADOR) {
+          this.destinoY = 0;
+        } else {
+          this.destinoY = 450;
+        }
+
+      }
+      move() {
+        super.move();
+        this.testaColisao();
+        if (this.y <= 0 || this.y >= 450) {
+          this.morre();
+        }
+      }
+
+      testaColisao() {
+        if (this.tipoSprite == TIRO_JOGADOR) {
+          for(let i = 0; i < sprites.length; i++) {
+            if (sprites[i].tipoSprite == INIMIGO) {
+              if (sprites[i].testaColisao(this.x,this.y)) {
+                sprites[i].morre();
+              }
+            }
+          }
+        } else {
+          if (nave.testaColisao(this.x,this.y)) {
+            alert("fim do jogo");
+            nave.morre();
+          }
+        }
+
+      }
+    }
+
+    class Nave extends Sprite {
+      constructor(ctx, idImagem) {
+        super(ctx,idImagem,350,450,35,44,2);
+        this.tipoSprite = JOGADOR;
+      }
+
+      posicao(x) {
+        this.destinoX = x +(x%2);
+      }
+      
+      tiro() {
+        let spriteTiro = new Tiro(this.ctx,this.x+17,430,TIRO_JOGADOR);
+        sprites.push(spriteTiro);
+      }
+    }
+
+
+
+    let nave;
+    let sprites = [];
+    let intervalo;
+    let fase = 0;
+    let inimigos = 0;
+    let ctx;
+    let segundos=0;
+    let teste = 0;
+
+    
+    function posicao(event) {
+      nave.posicao(event.offsetX);
+    }
+    function tiro() {
+      nave.tiro(); 
+    }
+
+    function Segundos(){
+      var pont = document.getElementById('pont');
+      var foto = pont.getContext('2d');
+      var larguraTexto = foto.measureText('Segundos: '+segundos).width;
+
+      // Define as coordenadas x e y
+      var x = 10;
+      var y = 20;
+
+      // Limpa a área onde o texto foi desenhado
+      foto.clearRect(x, y - 15, larguraTexto+5, 20);
+
+      // Configuração do texto
+      foto.fillStyle = 'black';
+      foto.font = '20px Arial';
+
+      // Exibe os segundos na tela
+      foto.fillText('Pontos: ' + segundos, x, y);
+
+      // Incrementa os segundos
+      segundos++;
+      if(teste==10){
+        if(dificuldade>10){
+          dificuldade-=20;
+          console.log(dificuldade);
+        }
+        teste=0
+      }
+      teste++;
+
+
+      
+    }
+
+
+    function executaCiclo() {
+      
+
+      for (let i = 0; i < sprites.length; i++) {
+        sprites[i].move();
+      }
+
+      if (inimigos == 0) {
+          if (fase == 5) {
+            alert("você venceu!");
+            clearInterval(intervalo);
+          }
+          for (let i = 1; i < sprites.length; i++) {
+            sprites[i].morre();
+          }
+          let inimigosAvancados = fase;
+          for( let i = 0; i < 5; i++) {
+            let x = i * 50;
+            let novoSprite;
+            
+            if (inimigosAvancados > 0) {
+                novoSprite = new Inimigo2(ctx,x, (1+(i %3)) );
+                inimigosAvancados--;
+            } else {
+                novoSprite = new Inimigo1(ctx,x, (1+(i %3)) );
+            }
+            sprites.push(novoSprite);
+            inimigos++;
+          }
+          alert("Iniciando fase " + ++fase);
+
+      }
+      if (!nave.vivo) {
+        clearInterval(intervalo);
+      }
+      for (let i = sprites.length-1; i>= 0; i--) {
+        if (!sprites[i].vivo) {
+          if (sprites[i].tipoSprite == INIMIGO) {
+            inimigos--;
+          }
+          sprites.splice(i,1);
+        }
+      }
+    }
+
+    function iniciar() {
+      let canvas = document.getElementById("idCanvas");
+      ctx = canvas.getContext("2d");
+      nave = new Nave(ctx,"nave");
+      sprites[0] = nave;
+      intervalo = window.setInterval(executaCiclo,5);
+      seg=window.setInterval(Segundos,1000);
+
+    }
+
+
+
+  </script>
+
+  <body onload="iniciar()">
+    <canvas id="idCanvas" width="700" height="500" style="background-color:white;border:1px solid #000000;" onmousemove="posicao(event)" onclick="tiro()">
+    </canvas>
+    <head>
+      <title>Canvas no Topo</title>
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        
+        canvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          background-color: #f0f0f0; 
+        }
+      </style>
+    </head>
+    <canvas id="pont" width="200" height="25" style="background-color:white;border:1px solid #000000;">
+    </canvas>
+    <div style="display:none">
+        <img src="nave.png" id="nave" >
+        <img src="inimigo-fase1.png" id="inimigo1" >
+        <img src="inimigo-fase2.png" id="inimigo2" >
+        <img src="tiro.png" id="id_tiro" >
+    </div>
+  </body>
+</html>
